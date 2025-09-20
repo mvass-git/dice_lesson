@@ -1,7 +1,10 @@
+from kivy.uix.settings import text_type
 from kivy.app import App
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.popup import Popup
+from kivy.uix.textinput import TextInput
 
 from kivy.clock import Clock
 
@@ -33,11 +36,32 @@ class DiceApp(App):
         self.layout.add_widget(self.log)
         self.layout.add_widget(self.btn)
 
+        self.logbox = BoxLayout(orientation="vertical")
+        self.input_login = TextInput()
+        self.input_password = TextInput()
+        self.btn_signup = Button(text = "sign up", on_press=self.signup)
+
+        self.logbox.add_widget(self.input_login)
+        self.logbox.add_widget(self.input_password)
+        self.logbox.add_widget(self.btn_signup)
+
+        self.login_win = Popup(content = self.logbox)
+        self.login_win.open()
         #start thread !!!
         threading.Thread(target=self.listen_server, daemon=True).start()
 
         return self.layout
     
+    def signup(self, btn):
+        login, password = self.input_login.text, self.input_password.text
+
+        msg = json.dumps({"cmd":"add_user", "login":login, "password":password})
+
+        try:
+            self.sock.sendall(msg.encode())
+        except Exception as e:
+            print(f"error in signup {e}")
+
     def roll(self, btn):
         try:
             msg = {"cmd":"roll"}
@@ -52,8 +76,8 @@ class DiceApp(App):
                 if not data:
                     break
                 msg = json.loads(data.decode()).get("msg")
-
-                Clock.schedule_once(lambda dt: self.update_log(msg))
+                if msg:
+                    Clock.schedule_once(lambda dt: self.update_log(msg))
             except:
                 break
     
